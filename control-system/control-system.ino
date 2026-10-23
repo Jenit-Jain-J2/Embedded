@@ -19,21 +19,20 @@ bool startupScreensCompleted = false;
 
 // --- Function to check safety limits ---
 void evaluateSafety(SystemState& state) {
-  if (state.control_state == ControlState::FAULT) return; // Already in fault
+  if (state.control_state == ControlState::FAULT) return;
 
-  // 1. Check Hard Current Limits
   float current_ua_pos = state.imon_pos * CH1_IMON_FACTOR;
   float current_ua_neg = state.imon_neg * CH2_IMON_FACTOR;
 
-  // Check if current exceeds HARD_IMAX or the user's target limit (if set > 0)
-  if (current_ua_pos > HARD_IMAX_UA || (state.target_iset_pos > 0.0f && current_ua_pos > state.target_iset_pos)) {
-    raiseError(Serial, state, ErrorCode::SafetyFault, "OVER_CURRENT", "Positive ch current limit exceeded");
+  // 1. Only trigger a hard FAULT if we hit the absolute physical limit of the iseg (470uA)
+  if (current_ua_pos > HARD_IMAX_UA) {
+    raiseError(Serial, state, ErrorCode::SafetyFault, "HARD_OVER_CURRENT", "Positive ch exceeded 470uA");
   }
-  else if (current_ua_neg > HARD_IMAX_UA || (state.target_iset_neg > 0.0f && current_ua_neg > state.target_iset_neg)) {
-    raiseError(Serial, state, ErrorCode::SafetyFault, "OVER_CURRENT", "Negative ch current limit exceeded");
+  else if (current_ua_neg > HARD_IMAX_UA) {
+    raiseError(Serial, state, ErrorCode::SafetyFault, "HARD_OVER_CURRENT", "Negative ch exceeded 470uA");
   }
 
-  // 2. Check Over-Voltage (Actual voltage exceeds target by the margin)
+  // 2. Check Over-Voltage
   if (state.hv_pos > (state.current_vset_pos + VOLTAGE_ERROR_MARGIN) && state.current_vset_pos > 10.0f) {
     raiseError(Serial, state, ErrorCode::SafetyFault, "OVER_VOLTAGE", "Positive ch over-voltage");
   }

@@ -67,7 +67,6 @@ AdcChannelReadout readAdcChannels(Adafruit_ADS1115& adc) {
     sum2 += adc.readADC_SingleEnded(2);
     watchdog_update();
     sum3 += adc.readADC_SingleEnded(3);
-
     if (SAMPLE_DELAY_MS > 0) {
       delay(SAMPLE_DELAY_MS);
     }
@@ -85,25 +84,23 @@ namespace {
 void applyChannelReadout_pos(Adafruit_ADS1115& adc, const AdcChannelReadout& readout, float hvFactor, float& vset, float& vmon, float& imon, float& hv) {
   vset = adc.computeVolts(readout.ch1);
   vmon = adc.computeVolts(readout.ch2);
-  imon = adc.computeVolts(readout.ch3); // Remains in Volts, calibrate later
+  imon = adc.computeVolts(readout.ch3);
   hv = hvFactor * vmon;
 }
 
 void applyChannelReadout_neg(Adafruit_ADS1115& adc, const AdcChannelReadout& readout, float hvFactor, float& vset, float& vmon, float& imon, float& hv) {
   vset = adc.computeVolts(readout.ch1);
   vmon = adc.computeVolts(readout.ch2);
-  imon = adc.computeVolts(readout.ch3); // Remains in Volts, calibrate later
+  imon = adc.computeVolts(readout.ch3);
   hv = hvFactor * vmon;
 }
 } // namespace
 
 void updateAdcReadings(Adafruit_ADS1115& positive, Adafruit_ADS1115& negative, SystemState& state) {
   const AdcChannelReadout posReadout = readAdcChannels(positive);
-  // Changed vset_pos to hw_vset_pos
   applyChannelReadout_pos(positive, posReadout, HV_FACTOR_POS, state.hw_vset_pos, state.vmon_pos, state.imon_pos, state.hv_pos);
 
   const AdcChannelReadout negReadout = readAdcChannels(negative);
-  // Changed vset_neg to hw_vset_neg
   applyChannelReadout_neg(negative, negReadout, HV_FACTOR_NEG, state.hw_vset_neg, state.vmon_neg, state.imon_neg, state.hv_neg);
 
   state.trend_hv_pos[state.trend_head] = state.hv_pos;
@@ -126,7 +123,6 @@ void setupDacModule(DFRobot_GP8XXX_IIC& dac, SystemState& state) {
 
   dac.setDACOutRange(dac.eOutputRange5V);
 
-  // Force both DAC channels to ZERO during startup
   state.dac_code_0 = 0;
   state.dac_code_1 = 0;
   state.current_vset_pos = 0.0f;
@@ -146,32 +142,48 @@ void updateDacOutputs(DFRobot_GP8XXX_IIC& dac, SystemState& state) {
   float elapsedSeconds = static_cast<float>(now - state.last_ramp_time) / 1000.0f;
   state.last_ramp_time = now;
 
-  // SAFETY OVERRIDE: If in FAULT state, force targets to 0 to trigger a safe ramp down
+  // SAFETY OVERRIDE: If in HARD FAULT state, force targets to 0
   if (state.control_state == ControlState::FAULT) {
       state.target_vset_pos = 0.0f;
       state.target_vset_neg = 0.0f;
   }
 
-  // --- POSITIVE CHANNEL RAMPING ---
-  if (state.current_vset_pos < state.target_vset_pos) {
-    state.current_vset_pos += CH1_RAMP_UP_V_PER_S * elapsedSeconds;
-    if (state.current_vset_pos > state.target_vset_pos) state.current_vset_pos = state.target_vset_pos;
-  } else if (state.current_vset_pos > state.target_vset_pos) {
-    state.current_vset_pos -= CH1_RAMP_DOWN_V_PER_S * elapsedSeconds;
-    if (state.current_vset_pos < state.target_vset_pos) state.current_vset_pos = state.target_vset_pos;
+  // --- POSITIVE CHANNEL: CONSTANT CURRENT & RAMPING ---
+  float current_ua_pos = state.imon_pos * CH1_IMON_FACTOR;
+
+  if (state.target_iset_pos > 0.0f && current_ua_pos > state.target_iset_pos) {
+    // CC Loop active: Current exceeded limit! Fast ramp down to reduce current.
+    state.current_vset_pos -= (CH1_RAMP_DOWN_V_PER_S * 5.0f) * elapsedSeconds;
+    if (state.current_vset_pos < 0.0f) state.current_vset_pos = 0.0f;
+  } else {
+    // Normal safe ramping
+    if (state.current_vset_pos < state.target_vset_pos) {
+      state.current_vset_pos += CH1_RAMP_UP_V_PER_S * elapsedSeconds;
+      if (state.current_vset_pos > state.target_vset_pos) state.current_vset_pos = state.target_vset_pos;
+    } else if (state.current_vset_pos > state.target_vset_pos) {
+      state.current_vset_pos -= CH1_RAMP_DOWN_V_PER_S * elapsedSeconds;
+      if (state.current_vset_pos < state.target_vset_pos) state.current_vset_pos = state.target_vset_pos;
+    }
   }
 
-  // --- NEGATIVE CHANNEL RAMPING ---
-  if (state.current_vset_neg < state.target_vset_neg) {
-    state.current_vset_neg += CH2_RAMP_UP_V_PER_S * elapsedSeconds;
-    if (state.current_vset_neg > state.target_vset_neg) state.current_vset_neg = state.target_vset_neg;
-  } else if (state.current_vset_neg > state.target_vset_neg) {
-    state.current_vset_neg -= CH2_RAMP_DOWN_V_PER_S * elapsedSeconds;
-    if (state.current_vset_neg < state.target_vset_neg) state.current_vset_neg = state.target_vset_neg;
+  // --- NEGATIVE CHANNEL: CONSTANT CURRENT & RAMPING ---
+  float current_ua_neg = state.imon_neg * CH2_IMON_FACTOR;
+
+  if (state.target_iset_neg > 0.0f && current_ua_neg > state.target_iset_neg) {
+    // CC Loop active: Current exceeded limit! Fast ramp down.
+    state.current_vset_neg -= (CH2_RAMP_DOWN_V_PER_S * 5.0f) * elapsedSeconds;
+    if (state.current_vset_neg < 0.0f) state.current_vset_neg = 0.0f;
+  } else {
+    // Normal safe ramping
+    if (state.current_vset_neg < state.target_vset_neg) {
+      state.current_vset_neg += CH2_RAMP_UP_V_PER_S * elapsedSeconds;
+      if (state.current_vset_neg > state.target_vset_neg) state.current_vset_neg = state.target_vset_neg;
+    } else if (state.current_vset_neg > state.target_vset_neg) {
+      state.current_vset_neg -= CH2_RAMP_DOWN_V_PER_S * elapsedSeconds;
+      if (state.current_vset_neg < state.target_vset_neg) state.current_vset_neg = state.target_vset_neg;
+    }
   }
 
-  // --- CONVERT RAMPED VOLTAGE TO DAC CODES ---
-  // DAC output max is 5V.
   // --- CONVERT RAMPED VOLTAGE TO DAC CODES ---
   float dac_volts_pos = state.current_vset_pos / HV_FACTOR_POS;
   float dac_volts_neg = state.current_vset_neg / HV_FACTOR_NEG;
@@ -179,11 +191,9 @@ void updateDacOutputs(DFRobot_GP8XXX_IIC& dac, SystemState& state) {
   if (dac_volts_pos > 5.0f) dac_volts_pos = 5.0f;
   if (dac_volts_neg > 5.0f) dac_volts_neg = 5.0f;
 
-  // FIXED: Positive is DAC 0, Negative is DAC 1
   uint16_t targetCode0 = static_cast<uint16_t>((dac_volts_pos / 5.0f) * MAX_DAC_BITS); // Positive
   uint16_t targetCode1 = static_cast<uint16_t>((dac_volts_neg / 5.0f) * MAX_DAC_BITS); // Negative
 
-  // Update state so display/serial can show the actual DAC codes
   state.dac_code_0 = targetCode0;
   state.dac_code_1 = targetCode1;
 
