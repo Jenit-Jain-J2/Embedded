@@ -1,0 +1,7 @@
+~$*.csv
+*.tmp
+control-system/build/
+*.bin
+*.elf
+*.hex
+.vscode/
