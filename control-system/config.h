@@ -9,7 +9,7 @@
 #include <Wire.h>
 
 // Steady-state watchdog timeout: tight enough to catch a hung I2C bus
-constexpr uint32_t I2C_WATCHDOG_TIMEOUT_MS = 300;
+constexpr uint32_t I2C_WATCHDOG_TIMEOUT_MS = 2000;
 constexpr uint32_t WATCHDOG_STARTUP_TIMEOUT_MS = 8000;
 
 constexpr uint32_t SERIAL_BAUD_RATE = 9600;

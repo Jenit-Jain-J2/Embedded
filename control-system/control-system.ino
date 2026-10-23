@@ -52,6 +52,7 @@ void setup() {
 
   initializeSerialPort();
   delay(100);
+  Serial.println("\n\n=== SYSTEM BOOTING ===");
 
   SPI1.setSCK(10);
   SPI1.setTX(11);
