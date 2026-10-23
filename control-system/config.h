@@ -39,8 +39,8 @@ constexpr uint8_t ADDR_GP8413 = 0x58;
 constexpr uint8_t ADDR_ADS1115_CH1 = 0x4A;
 constexpr uint8_t ADDR_ADS1115_CH2 = 0x48;
 
-constexpr float CH1_HV_FACTOR = 1192.5860f; // done
-constexpr float CH2_HV_FACTOR = 1183.7160f;
+constexpr float CH1_HV_FACTOR = 1233.7708f; // done
+constexpr float CH2_HV_FACTOR = 1226.2254f;
 constexpr float CH1_MAX_VOLTS = 6000.0f;
 constexpr float HV_FACTOR_POS = CH1_HV_FACTOR;
 constexpr float HV_FACTOR_NEG = CH2_HV_FACTOR;
@@ -76,8 +76,8 @@ constexpr uint32_t RAMP_UPDATE_INTERVAL_MS = 100;
 constexpr float HARD_IMAX_UA = 470.0f; // Absolute max current the iseg can output
 
 // TODO: Need the exact scaling factor. (e.g., if 5V output = 470uA, factor is 94.0f)
-constexpr float CH1_IMON_FACTOR = 94.0f;
-constexpr float CH2_IMON_FACTOR = 94.0f;
+constexpr float CH1_IMON_FACTOR = 74.70f;
+constexpr float CH2_IMON_FACTOR = 74.97f;
 
 // TODO: Over-voltage safety threshold (e.g., abort if Vmon exceeds Vset by 50V)
-constexpr float VOLTAGE_ERROR_MARGIN = 50.0f; 
+constexpr float VOLTAGE_ERROR_MARGIN = 50.0f;
