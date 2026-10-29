@@ -12,7 +12,7 @@ This firmware and hardware system controls a dual-channel High Voltage (HV) powe
 
 ### Major Components
 *   **Microcontroller**: WIZnet W5100S-EVB-Pico (RP2040 MCU + W5100S Ethernet).
-*   **High Voltage Modules**: 2x iseg `bp0606r4p12` (6kV, 6W, Max 470µA).
+*   **High Voltage Modules**: 2x iseg `bp0606r4p12` (6kV, 6W, Max 670µA).
 *   **DAC (Digital-to-Analog)**: DFRobot Gravity GP8413 (15-bit, 0-5V output, I2C).
 *   **ADC (Analog-to-Digital)**: 2x ADS1115 (16-bit, 4-Channel, I2C).
 *   **Display**: 2.4" TFT SPI 240x320 (ST7789 driver, no touch).

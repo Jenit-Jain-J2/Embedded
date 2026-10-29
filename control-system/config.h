@@ -64,20 +64,20 @@ constexpr unsigned long ETHERNET_DHCP_RETRY_MS = 10000;
 // ==========================================
 
 // Ramp rates (Volts per second). Defaulted to 10V/s as discussed.
-constexpr float CH1_RAMP_UP_V_PER_S   = 2.0f;  // +ve Ramp Up
+constexpr float CH1_RAMP_UP_V_PER_S   = 5.0f;  // +ve Ramp Up
 constexpr float CH1_RAMP_DOWN_V_PER_S = 10.0f;  // +ve Ramp Down
-constexpr float CH2_RAMP_UP_V_PER_S   = 2.0f;  // -ve Ramp Up
+constexpr float CH2_RAMP_UP_V_PER_S   = 5.0f;  // -ve Ramp Up
 constexpr float CH2_RAMP_DOWN_V_PER_S = 10.0f;  // -ve Ramp Down
 
 // How often the State Machine updates the DAC to achieve the ramp (in milliseconds)
 constexpr uint32_t RAMP_UPDATE_INTERVAL_MS = 100;
 
 // Hardcoded Hardware Current Limits (TODO: Adjust these once we know the exact Imon scaling)
-constexpr float HARD_IMAX_UA = 470.0f; // Absolute max current the iseg can output
+constexpr float HARD_IMAX_UA = 600.0f; // Absolute max current the iseg can output
 
-// TODO: Need the exact scaling factor. (e.g., if 5V output = 470uA, factor is 94.0f)
-constexpr float CH1_IMON_FACTOR = 74.70f;
-constexpr float CH2_IMON_FACTOR = 74.97f;
+// TODO: Need the exact scaling factor. (e.g., if 5V output = 4670uA, factor is 134.0f)
+constexpr float CH1_IMON_FACTOR = 134.00f;
+constexpr float CH2_IMON_FACTOR = 134.00f;
 
 // TODO: Over-voltage safety threshold (e.g., abort if Vmon exceeds Vset by 50V)
 constexpr float VOLTAGE_ERROR_MARGIN = 50.0f;
